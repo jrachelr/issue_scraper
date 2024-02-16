@@ -16,7 +16,7 @@ load_dotenv()
 url = "https://gitlab.com/groups/gitlab-org/-/issues/?sort=created_date&state=opened&label_name%5B%5D=frontend&label_name%5B%5D=quick%20win&label_name%5B%5D=Community%20contribution&first_page_size=100"
 unassigned_url = "https://gitlab.com/groups/gitlab-org/-/issues/?sort=created_date&state=opened&label_name%5B%5D=frontend&label_name%5B%5D=Community%20contribution&label_name%5B%5D=quick%20win&assignee_id=None&first_page_size=100"
 options = Options()
-# options.add_argument("--headless")
+options.add_argument("--headless")
 options.page_load_strategy = "normal"
 BOT_API_KEY = os.environ.get("BOT_API_KEY")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
@@ -43,12 +43,23 @@ def check_for_new_issue(url, current_time):
 
     # parse the HTML element to convert to datetime object
     issued_date_string = issued_date_element.get_attribute("title")
-    formatted_date_string = issued_date_string.split("A")[0]
 
-    # convert string to datetime object
-    issued_date_object = datetime.strptime(
-        formatted_date_string, "%B %d, %Y at %I:%M:%S "
-    )
+    # Month Day, Year format
+    try:
+        formatted_date_string = issued_date_string.split("A")[0]
+        print(formatted_date_string)
+        # convert string to datetime object
+        issued_date_object = datetime.strptime(
+            formatted_date_string, "%B %d, %Y at %I:%M:%S "
+        )
+
+    # Day Month Year format
+    except ValueError:
+        formatted_date_string = issued_date_string.split("G")[0]
+        print(formatted_date_string)
+        issued_date_object = datetime.strptime(
+            formatted_date_string, "%d %B %Y at %H:%M:%S "
+        )
 
     # check if first issue on page was issued within 24hrs
     if current_time - timedelta(hours=24) <= issued_date_object <= current_time:
@@ -56,7 +67,7 @@ def check_for_new_issue(url, current_time):
         return recent_issue
 
 
-def check_for_unassigned_issue():
+def check_for_unassigned_issue(unassigned_url):
     unassigned_issue = False
 
     # access GitLab issue page
